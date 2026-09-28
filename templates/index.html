@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeNet AI</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, Arial, sans-serif;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(91, 141, 239, .20), transparent 28%),
+                radial-gradient(circle at 85% 80%, rgba(88, 214, 141, .16), transparent 30%),
+                #07111f;
+            color: #eef6ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: min(980px, 100%);
+            height: min(760px, 94vh);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 28px;
+            background: rgba(10, 24, 42, .82);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 30px 80px rgba(0,0,0,.35);
+        }
+
+        header {
+            padding: 22px 26px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid rgba(255,255,255,.09);
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            font-size: 23px;
+            background: linear-gradient(135deg, #6ea8ff, #55d69a);
+            color: #06111e;
+            font-weight: 900;
+        }
+
+        h1 { margin: 0; font-size: 22px; }
+        .subtitle { margin: 4px 0 0; color: #9db0c8; font-size: 13px; }
+
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+        }
+
+        .message {
+            max-width: 78%;
+            margin: 0 0 18px;
+            padding: 14px 17px;
+            border-radius: 18px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+
+        .bot {
+            background: rgba(255,255,255,.075);
+            border: 1px solid rgba(255,255,255,.08);
+            border-top-left-radius: 6px;
+        }
+
+        .user {
+            margin-left: auto;
+            background: linear-gradient(135deg, #3f82f7, #3970d6);
+            border-top-right-radius: 6px;
+        }
+
+        .composer {
+            padding: 18px;
+            border-top: 1px solid rgba(255,255,255,.09);
+            background: rgba(5,15,27,.55);
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        input {
+            flex: 1;
+            border: 1px solid rgba(255,255,255,.12);
+            outline: none;
+            border-radius: 16px;
+            padding: 15px 17px;
+            color: white;
+            background: rgba(255,255,255,.07);
+            font-size: 15px;
+        }
+
+        input:focus { border-color: rgba(110,168,255,.7); }
+
+        button {
+            border: 0;
+            border-radius: 16px;
+            padding: 0 22px;
+            background: #65a0ff;
+            color: #06111e;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        button:disabled { opacity: .6; cursor: wait; }
+
+        .welcome {
+            text-align: center;
+            max-width: 620px;
+            margin: 70px auto;
+            color: #b7c6d9;
+        }
+
+        .welcome h2 { color: #fff; margin-bottom: 8px; }
+        .welcome p { line-height: 1.6; }
+
+        @media (max-width: 600px) {
+            body { padding: 0; }
+            .app { height: 100vh; border-radius: 0; }
+            .message { max-width: 90%; }
+            header { padding: 18px; }
+            #chat { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <header>
+            <div class="logo">🛡</div>
+            <div>
+                <h1>SafeNet AI</h1>
+                <p class="subtitle">Your cybersecurity & digital safety study assistant</p>
+            </div>
+        </header>
+
+        <section id="chat">
+            <div class="welcome" id="welcome">
+                <h2>Welcome to SafeNet AI</h2>
+                <p>Ask questions about cybersecurity, cyber safety, privacy, information security, and related study topics.</p>
+            </div>
+        </section>
+
+        <div class="composer">
+            <form id="chatForm">
+                <input id="messageInput" type="text"
+                       placeholder="Ask a SafeNet AI study question..."
+                       autocomplete="off" required>
+                <button id="sendButton" type="submit">Send</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        const form = document.getElementById("chatForm");
+        const input = document.getElementById("messageInput");
+        const chat = document.getElementById("chat");
+        const sendButton = document.getElementById("sendButton");
+        const welcome = document.getElementById("welcome");
+
+        function addMessage(text, type) {
+            welcome?.remove();
+            const message = document.createElement("div");
+            message.className = `message ${type}`;
+            message.textContent = text;
+            chat.appendChild(message);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage(message, "user");
+            input.value = "";
+            sendButton.disabled = true;
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Something went wrong.");
+                }
+
+                addMessage(data.reply, "bot");
+            } catch (error) {
+                addMessage(error.message, "bot");
+            } finally {
+                sendButton.disabled = false;
+                input.focus();
+            }
+        });
+    </script>
+</body>
+</html>
